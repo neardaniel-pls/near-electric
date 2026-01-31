@@ -639,7 +639,11 @@ with tab6:
     if potencia_atual != potencia_recomendada:
         st.markdown("---")
         st.subheader("💰 Economia Potencial")
-        economia_anual = detalhes['economia_potencial']
+        
+        # Calcular economia potencial usando o método do analisador
+        custo_atual = analisador_potencia.obter_custo_potencia(potencia_atual) * 12
+        custo_recomendado = analisador_potencia.obter_custo_potencia(potencia_recomendada) * 12
+        economia_anual = max(0, custo_atual - custo_recomendado)
         
         col1, col2, col3 = st.columns(3)
         
@@ -709,11 +713,11 @@ with tab6:
     plt.close(fig)
     
     # Relatório detalhado
-    st.markdown("---")
-    st.subheader("📄 Relatório Detalhado")
+    # st.markdown("---")
+    # st.subheader("📄 Relatório Detalhado")
     
-    relatorio = analisador_potencia.gerar_relatorio_potencia(potencia_atual)
-    st.text(relatorio)
+    # relatorio = analisador_potencia.gerar_relatorio_potencia(potencia_atual)
+    # st.text(relatorio)
 
 # Tab 7: Dados
 with tab6:

@@ -20,7 +20,8 @@ logger = setup_logging()
 # Carregar configuração
 try:
     config_potencias = carregar_config('config/potencias.yaml')
-    POTENCIA_ATUAL_PADRAO = config.get('potencia', {}).get('atual', 10.35)
+    config_principal = carregar_config('config/config.yaml')
+    POTENCIA_ATUAL_PADRAO = config_principal.get('potencia', {}).get('atual', 10.35)
     
     # Carregar custos de potência
     CUSTOS_POTENCIA = {}
@@ -184,7 +185,6 @@ class AnalisadorPotencia:
             'margem_seguranca': margem_seguranca,
             'potencia_necessaria': potencia_necessaria,
             'potencia_recomendada': potencia_recomendada,
-            'economia_potencial': 0.0,  # Será calculado no analisar_eficiencia_potencia
             'estatisticas': estatisticas
         }
         
@@ -398,6 +398,18 @@ class AnalisadorPotencia:
         
         return custo_anual
     
+    def obter_custo_potencia(self, potencia: float) -> float:
+        """
+        Obtém o custo mensal de uma potência contratada.
+        
+        Args:
+            potencia: Potência em kVA
+        
+        Returns:
+            Custo mensal em €
+        """
+        return CUSTOS_POTENCIA.get(potencia, 0)
+    
     def gerar_relatorio_potencia(self, potencia_atual: Optional[float] = None) -> str:
         """
         Gera um relatório detalhado da análise de potência.
@@ -441,7 +453,9 @@ class AnalisadorPotencia:
         relatorio += f"Margem de Segurança: {detalhes['margem_seguranca']*100:.0f}%\n\n"
         
         if potencia_atual and potencia_atual != potencia_recomendada:
-            relatorio += f"💰 ECONOMIA POTENCIAL ANUAL: €{detalhes['economia_potencial']:.2f}\n\n"
+            # Calcular economia potencial
+            economia_potencial = self._calcular_economia_potencial(potencia_atual, potencia_recomendada)
+            relatorio += f"💰 ECONOMIA POTENCIAL ANUAL: €{economia_potencial:.2f}\n\n"
         
         relatorio += "="*70 + "\n"
         
