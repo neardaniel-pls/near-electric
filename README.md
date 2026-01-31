@@ -16,7 +16,8 @@ analise-eletricidade/
 │   ├── tariff_calculator.py        # Cálculo de tarifas
 │   ├── seasonal_analyzer.py        # Análise sazonal (NOVO!)
 │   ├── forecaster.py              # Previsão de consumo (NOVO!)
-│   └── alerts.py                  # Sistema de alertas (NOVO!)
+│   ├── alerts.py                  # Sistema de alertas (NOVO!)
+│   └── power_analyzer.py          # Análise de potência (NOVO!)
 ├── tests/                         # Testes unitários
 │   ├── __init__.py
 │   ├── test_data_loader.py
@@ -134,14 +135,24 @@ O dashboard estará disponível em http://localhost:8501
 - Configuração personalizada de limites
 - Filtragem por nível de severidade
 
-### 7. Cálculo de Tarifas
+### 7. Análise de Potência Contratada (NOVO!)
+- Recomendação de potência contratada baseada no consumo real
+- Análise de eficiência da potência atual
+- Comparação entre todas as potências disponíveis (1.15 a 20.70 kVA)
+- Cálculo de economia potencial anual
+- Margens de segurança configuráveis (conservadora, moderada, otimista)
+- Estatísticas de pico (máximo, médio, percentil 95, percentil 99)
+- Classificação da potência atual (sobredimensionada, adequada, subdimensionada)
+- Relatório detalhado de análise de potência
+
+### 8. Cálculo de Tarifas
 - **Tarifa Simples:** Preço único por kWh
 - **Tarifa Bi-horária:** Preços diferentes para horário de vazio e cheio
 - **Tarifa Tri-horária:** Preços para vazio, ponta e cheio
 - Comparação automática entre tarifas
 - Recomendação da tarifa mais económica
 
-### 8. Visualizações
+### 9. Visualizações
 - Consumo ao longo do tempo
 - Consumo por período (mês, dia da semana, hora)
 - Boxplots de distribuição
@@ -155,7 +166,7 @@ O dashboard estará disponível em http://localhost:8501
 - **Comparação anual** (NOVO!): Year-over-year
 - **KPIs** (NOVO!): Painel de indicadores chave
 
-### 9. Dashboard Interativo (NOVO!)
+### 10. Dashboard Interativo (NOVO!)
 - Interface web com Streamlit
 - Filtros de data e estado
 - Visualização em tempo real
@@ -163,9 +174,10 @@ O dashboard estará disponível em http://localhost:8501
 - Previsão com diferentes métodos
 - Configuração de alertas
 - Comparação de tarifas
+- Análise de potência contratada (NOVO!)
 - Exportação de dados (CSV/Excel)
 
-### 10. Exportação de Dados
+### 11. Exportação de Dados
 - Dados processados em CSV
 - Resumos por período
 - Comparação de tarifas
@@ -360,6 +372,33 @@ fig = visualizador.plotar_comparacao_anual()
 
 # Painel de KPIs
 fig = visualizador.plotar_kpis()
+```
+
+### Análise de Potência Contratada (NOVO!)
+
+```python
+from src.power_analyzer import AnalisadorPotencia
+
+# Criar analisador
+analisador = AnalisadorPotencia(df)
+
+# Calcular estatísticas de potência
+estatisticas = analisador.calcular_estatisticas_potencia()
+
+# Recomendar potência
+potencia_recomendada, descricao, detalhes = analisador.recomendar_potencia(
+    margem_seguranca=0.30  # 30% de margem
+)
+
+# Analisar eficiência da potência atual
+analise = analisador.analisar_eficiencia_potencia(potencia_atual=10.35)
+
+# Comparar todas as potências
+df_comparacao = analisador.comparar_potencias(potencia_atual=10.35)
+
+# Gerar relatório detalhado
+relatorio = analisador.gerar_relatorio_potencia(potencia_atual=10.35)
+print(relatorio)
 ```
 
 ## 🧪 Testes

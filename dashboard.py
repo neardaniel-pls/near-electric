@@ -29,6 +29,14 @@ from src.visualizer import VisualizadorConsumo
 from src.seasonal_analyzer import AnalisadorSazonal
 from src.forecaster import PrevisorConsumo
 from src.alerts import configurar_alertas_padrao, NivelAlerta
+from src.power_analyzer import AnalisadorPotencia, TipoPotencia
+
+# Carregar configuração
+try:
+    config = carregar_config('config/config.yaml')
+    POTENCIA_ATUAL_PADRAO = config.get('potencia', {}).get('atual', 10.35)
+except Exception as e:
+    POTENCIA_ATUAL_PADRAO = 10.35
 
 # Configurar página
 st.set_page_config(
@@ -136,12 +144,13 @@ st.sidebar.metric("Consumo Total", f"{df_filtrado['Consumo registado (kW)'].sum(
 st.sidebar.metric("Consumo Médio", f"{df_filtrado['Consumo registado (kW)'].mean():.4f} kW")
 
 # Tabs para diferentes visualizações
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Visão Geral", 
     "📅 Análise Sazonal", 
     "🔮 Previsão", 
     "⚠️ Alertas", 
     "💰 Tarifas",
+    "⚡ Potência",
     "📋 Dados"
 ])
 
@@ -479,7 +488,182 @@ with tab5:
     st.success(f"A tarifa mais económica é: **{tarifa_recomendada.nome}**")
     st.info(f"Custo: €{resumo_recomendacao['custo_total']:.2f}")
 
-# Tab 6: Dados
+# Tab 6: Potência
+with tab6:
+    st.header("Análise de Potência Contratada")
+    
+    # Configurar potência atual
+    st.subheader("Configurar Potência Atual")
+    
+    # Lista de potências disponíveis
+    potencias_disponiveis = sorted(AnalisadorPotencia.POTENCIAS.keys())
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        potencia_atual = st.selectbox(
+            "Potência Contratada Atual (kVA)",
+            potencias_disponiveis,
+            index=potencias_disponiveis.index(POTENCIA_ATUAL_PADRAO) if POTENCIA_ATUAL_PADRAO in potencias_disponiveis else 0,
+            format_func=lambda x: f"{x} kVA - {AnalisadorPotencia.POTENCIAS[x]}"
+        )
+    
+    with col2:
+        margem_seguranca = st.selectbox(
+            "Margem de Segurança para Recomendação",
+            ["Conservadora (50%)", "Moderada (30%)", "Otimista (15%)"],
+            index=1
+        )
+    
+    # Mapear margem de segurança
+    margem_map = {
+        "Conservadora (50%)": AnalisadorPotencia.MARGEM_SEGURANCA_CONSERVADORA,
+        "Moderada (30%)": AnalisadorPotencia.MARGEM_SEGURANCA_MODERADA,
+        "Otimista (15%)": AnalisadorPotencia.MARGEM_SEGURANCA_OTIMISTA
+    }
+    
+    # Criar analisador de potência
+    analisador_potencia = AnalisadorPotencia(df_filtrado)
+    
+    # Calcular estatísticas
+    estatisticas = analisador_potencia.calcular_estatisticas_potencia()
+    
+    # Mostrar estatísticas
+    st.markdown("---")
+    st.subheader("📊 Estatísticas de Consumo")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Pico Máximo", f"{estatisticas['pico_maximo']:.4f} kW")
+    with col2:
+        st.metric("Pico Médio", f"{estatisticas['pico_medio']:.4f} kW")
+    with col3:
+        st.metric("Pico Percentil 95", f"{estatisticas['pico_percentil_95']:.4f} kW")
+    with col4:
+        st.metric("Pico Percentil 99", f"{estatisticas['pico_percentil_99']:.4f} kW")
+    
+    # Análise da potência atual
+    st.markdown("---")
+    st.subheader("⚡ Análise da Potência Atual")
+    
+    analise = analisador_potencia.analisar_eficiencia_potencia(potencia_atual)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Utilização Média", f"{analise['utilizacao_media']:.2f}%")
+    with col2:
+        st.metric("Utilização do Pico", f"{analise['utilizacao_pico']:.2f}%")
+    with col3:
+        st.metric("Utilização P99", f"{analise['utilizacao_p99']:.2f}%")
+    
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.info(f"**Classificação:** {analise['classificacao']}")
+    with col2:
+        st.info(f"**Recomendação:** {analise['recomendacao']}")
+    
+    # Recomendação de potência
+    st.markdown("---")
+    st.subheader("💡 Recomendação de Potência")
+    
+    potencia_recomendada, descricao, detalhes = analisador_potencia.recomendar_potencia(
+        margem_seguranca=margem_map[margem_seguranca]
+    )
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.success(f"**Potência Recomendada:** {potencia_recomendada} kVA")
+        st.info(f"**Descrição:** {descricao}")
+    
+    with col2:
+        st.info(f"**Margem de Segurança:** {detalhes['margem_seguranca']*100:.0f}%")
+        st.info(f"**Potência Necessária:** {detalhes['potencia_necessaria']:.4f} kW")
+    
+    # Economia potencial
+    if potencia_atual != potencia_recomendada:
+        st.markdown("---")
+        st.subheader("💰 Economia Potencial")
+        economia_anual = detalhes['economia_potencial']
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Economia Anual", f"€{economia_anual:.2f}")
+        with col2:
+            st.metric("Economia Mensal", f"€{economia_anual/12:.2f}")
+        with col3:
+            st.metric("Economia Diária", f"€{economia_anual/365:.2f}")
+        
+        if economia_anual > 0:
+            st.success(f"💡 Ao mudar para {potencia_recomendada} kVA, pode poupar **€{economia_anual:.2f} por ano**!")
+        else:
+            st.warning(f"⚠️ A potência atual ({potencia_atual} kVA) já é adequada para o seu consumo.")
+    
+    # Comparação de todas as potências
+    st.markdown("---")
+    st.subheader("📋 Comparação de Todas as Potências")
+    
+    df_comparacao_potencias = analisador_potencia.comparar_potencias(potencia_atual)
+    st.dataframe(df_comparacao_potencias)
+    
+    # Gráfico de comparação
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Criar gráfico de barras para potências
+    x = np.arange(len(df_comparacao_potencias))
+    width = 0.35
+    
+    # Potência contratada vs potência necessária
+    ax.bar(x, df_comparacao_potencias['Potência (kVA)'], width, label='Potência Contratada', alpha=0.7)
+    ax.axhline(y=estatisticas['pico_maximo'], color='red', linestyle='--', label='Pico Máximo', linewidth=2)
+    ax.axhline(y=estatisticas['pico_percentil_99'], color='orange', linestyle='--', label='Pico P99', linewidth=2)
+    
+    ax.set_xlabel('Potência Contratada')
+    ax.set_ylabel('Potência (kW)')
+    ax.set_title('Comparação de Potências vs Consumo Real', fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(df_comparacao_potencias['Potência (kVA)'], rotation=45)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)
+    
+    # Gráfico de utilização
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    utilizacoes = []
+    for potencia in df_comparacao_potencias['Potência (kVA)']:
+        utilizacao = (estatisticas['pico_maximo'] / potencia * 100)
+        utilizacoes.append(utilizacao)
+    
+    colors = ['green' if u < 70 else 'orange' if u < 90 else 'red' for u in utilizacoes]
+    ax.bar(df_comparacao_potencias['Potência (kVA)'].astype(str), utilizacoes, color=colors)
+    ax.axhline(y=100, color='red', linestyle='--', label='Limite (100%)')
+    ax.axhline(y=85, color='orange', linestyle='--', label='Próximo do limite (85%)')
+    ax.axhline(y=70, color='green', linestyle='--', label='Adequado (70%)')
+    
+    ax.set_xlabel('Potência Contratada (kVA)')
+    ax.set_ylabel('Utilização do Pico (%)')
+    ax.set_title('Utilização da Potência por Opção', fontweight='bold')
+    ax.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)
+    
+    # Relatório detalhado
+    st.markdown("---")
+    st.subheader("📄 Relatório Detalhado")
+    
+    relatorio = analisador_potencia.gerar_relatorio_potencia(potencia_atual)
+    st.text(relatorio)
+
+# Tab 7: Dados
 with tab6:
     st.header("Dados de Consumo")
     

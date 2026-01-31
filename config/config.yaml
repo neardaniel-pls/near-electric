@@ -88,3 +88,16 @@ alertas:
     porta: 587
     usuario: ""
     senha: ""
+
+# Configuração de potência contratada
+potencia:
+  atual: 10.35  # Potência contratada atual em kVA (padrão: 10.35)
+  custos_mensais:  # Custos mensais por potência em € (valores aproximados EDP)
+    1.15: 2.64
+    2.30: 5.28
+    3.45: 7.92
+    6.90: 15.84
+    10.35: 23.76
+    13.80: 31.68
+    17.25: 39.60
+    20.70: 47.52

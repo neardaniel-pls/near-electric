@@ -13,6 +13,7 @@ from src.tariff_calculator import (
 from src.seasonal_analyzer import AnalisadorSazonal
 from src.forecaster import PrevisorConsumo
 from src.alerts import GestorAlertas, TipoAlerta, NivelAlerta, configurar_alertas_padrao
+from src.power_analyzer import AnalisadorPotencia, TipoPotencia
 
 __all__ = [
     # utils
@@ -49,4 +50,7 @@ __all__ = [
     'TipoAlerta',
     'NivelAlerta',
     'configurar_alertas_padrao',
+    # power_analyzer
+    'AnalisadorPotencia',
+    'TipoPotencia',
 ]

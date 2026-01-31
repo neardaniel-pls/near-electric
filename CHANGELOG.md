@@ -4,6 +4,45 @@ Todas as alterações notáveis deste projeto serão documentadas neste ficheiro
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0] - 2026-01-31
+
+### Adicionado
+- **Análise de Potência Contratada**
+  - Módulo `src/power_analyzer.py` - Análise de potência contratada
+  - Recomendação de potência contratada baseada no consumo real
+  - Análise de eficiência da potência atual
+  - Comparação entre todas as potências disponíveis (1.15 a 20.70 kVA)
+  - Cálculo de economia potencial anual
+  - Margens de segurança configuráveis (conservadora, moderada, otimista)
+  - Estatísticas de pico (máximo, médio, percentil 95, percentil 99)
+  - Classificação da potência atual (sobredimensionada, adequada, subdimensionada)
+  - Relatório detalhado de análise de potência
+
+- **Nova Tab no Dashboard**
+  - Tab "⚡ Potência" com análise completa de potência contratada
+  - Seleção de potência atual
+  - Configuração de margem de segurança
+  - Visualização de estatísticas de consumo
+  - Gráficos de comparação de potências
+  - Gráficos de utilização por potência
+  - Recomendação de potência com economia potencial
+
+### Melhorado
+- **Dashboard**
+  - Atualizado para 7 tabs (adicionada tab de Potência)
+  - Nova funcionalidade de análise de potência contratada
+  - Visualizações adicionais para comparação de potências
+
+- **Documentação**
+  - README.md atualizado com nova funcionalidade
+  - Exemplos de uso para análise de potência
+
+### Notas
+- A análise de potência ajuda a identificar se a potência contratada está adequada
+- Potências disponíveis: 1.15, 2.30, 3.45, 6.90, 10.35, 13.80, 17.25, 20.70 kVA
+- Custos de potência baseados em valores aproximados da EDP
+- A margem de segurança permite ajustar a recomendação conforme preferência
+
 ## [1.1.0] - 2026-01-31
 
 ### Adicionado
