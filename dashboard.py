@@ -514,6 +514,58 @@ with tab6:
             ["Conservadora (50%)", "Moderada (30%)", "Otimista (15%)"],
             index=1
         )
+        tipo_tarifa = st.selectbox(
+            "Tipo de Tarifa para Cálculo de Custo",
+            ["Simples", "Bi-horária", "Tri-horária"],
+            index=0
+        )
+    
+    # Mapear margem de segurança
+    margem_map = {
+        "Conservadora (50%)": AnalisadorPotencia.MARGEM_SEGURANCA_CONSERVADORA,
+        "Moderada (30%)": AnalisadorPotencia.MARGEM_SEGURANCA_MODERADA,
+        "Otimista (15%)": AnalisadorPotencia.MARGEM_SEGURANCA_OTIMISTA
+    }
+    
+    # Criar analisador de potência
+    analisador_potencia = AnalisadorPotencia(df_filtrado)
+    
+    # Calcular estatísticas de potência
+    estatisticas = analisador_potencia.calcular_estatisticas_potencia()
+    
+    # Mapear margem de segurança
+    margem_map = {
+        "Conservadora (50%)": AnalisadorPotencia.MARGEM_SEGURANCA_CONSERVADORA,
+        "Moderada (30%)": AnalisadorPotencia.MARGEM_SEGURANCA_MODERADA,
+        "Otimista (15%)": AnalisadorPotencia.MARGEM_SEGURANCA_OTIMISTA
+    }
+    
+    # Mapear tipo de tarifa
+    tipo_tarifa_map = {
+        "Simples": "simples",
+        "Bi-horária": "bi_horaria",
+        "Tri-horária": "tri_horaria"
+    }
+    tipo_tarifa = tipo_tarifa_map.get(tipo_tarifa, "simples")
+    
+    # Calcular custo anual de consumo baseado no tipo de tarifa
+    custo_consumo_anual = analisador_potencia.calcular_custo_consumo_anual(tipo_tarifa)
+    
+    # Mostrar estatísticas
+    st.subheader("📊 Estatísticas de Consumo")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Pico Máximo", f"{estatisticas['pico_maximo']:.4f} kW")
+    with col2:
+        st.metric("Pico Médio", f"{estatisticas['pico_medio']:.4f} kW")
+    with col3:
+        st.metric("Pico Percentil 95", f"{estatisticas['pico_percentil_95']:.4f} kW")
+    with col4:
+        st.metric("Pico Percentil 99", f"{estatisticas['pico_percentil_99']:.4f} kW")
+    
+    st.markdown(f"**Custo Anual de Consumo ({tipo_tarifa}):** €{custo_consumo_anual:.2f}")
     
     # Mapear margem de segurança
     margem_map = {

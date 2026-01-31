@@ -1,0 +1,54 @@
+# Configuração de custos de potência contratada e tarifas de consumo
+# Baseado em: https://www.edp.pt/pt/particulares/tarifas-e-precos/
+
+# Custos de potência contratada (termo de potência)
+potencias:
+  1.15:
+    nome: "Garagem ou espaços similares de pequenas dimensões"
+    custo_mensal: 2.64  # €/mês
+  2.30:
+    nome: "Apartamento T0 (1 pessoa)"
+    custo_mensal: 5.28  # €/mês
+  3.45:
+    nome: "Apartamento para 1 a 2 pessoas"
+    custo_mensal: 7.92  # €/mês
+  6.90:
+    nome: "Apartamento para 3 a 5 pessoas"
+    custo_mensal: 15.84  # €/mês
+  10.35:
+    nome: "Moradia com mais de 5 pessoas"
+    custo_mensal: 23.76  # €/mês
+  13.80:
+    nome: "Moradia com piscina"
+    custo_mensal: 31.68  # €/mês
+  17.25:
+    nome: "Pequenas empresas"
+    custo_mensal: 39.60  # €/mês
+  20.70:
+    nome: "Médias empresas"
+    custo_mensal: 47.52  # €/mês
+
+# Preços de consumo por tipo de tarifa (€/kWh)
+tarifas_consumo:
+  simples:
+    nome: "Tarifa Simples"
+    preco_kwh: 0.1424  # Preço de consumo (sem desconto)
+  bi_horaria:
+    nome: "Tarifa Bi-horária"
+    preco_vazio: 0.0987  # Preço em horário de vazio
+    preco_cheio: 0.1633  # Preço em horário de cheio
+  tri_horaria:
+    nome: "Tarifa Tri-horária"
+    preco_vazio: 0.0987  # Preço em horário de vazio
+    preco_ponta: 0.1633  # Preço em horário de ponta
+    preco_cheio: 0.1633  # Preço em horário de cheio
+
+# Horários das tarifas bi-horária e tri-horária
+horarios:
+  bi_horaria:
+    vazio: [[0, 7], [22, 24]]  # Horários de vazio
+    cheio: [[7, 22], [24, 0]]  # Horários de cheio (resto)
+  tri_horaria:
+    vazio: [[0, 7], [22, 24]]  # Horários de vazio
+    ponta: [[18, 21]]  # Horários de ponta
+    cheio: [[7, 18], [21, 22], [24, 0]]  # Horários de cheio (resto)
