@@ -1,0 +1,112 @@
+# Definições de tarifas de eletricidade (Portugal)
+
+# Tarifa Simples (único preço)
+tarifa_simples:
+  nome: "Simples"
+  descricao: "Tarifa simples com preço único por kWh"
+  preco_kwh: 0.25
+  periodo: 24h
+
+# Tarifa Bi-horária (vazio e cheio)
+tarifa_bi_horaria:
+  nome: "Bi-horária"
+  descricao: "Tarifa bi-horária com horários de vazio e cheio"
+  horario_vazio:
+    preco_kwh: 0.104
+    descricao: "Horário de vazio econômico"
+    periodos:
+      - inicio: 0
+        fim: 7
+      - inicio: 22
+        fim: 24
+  horario_cheio:
+    preco_kwh: 0.2584
+    descricao: "Horário cheio"
+    periodos:
+      - inicio: 7
+        fim: 22
+
+# Tarifa Tri-horária (vazio, ponta e cheio)
+tarifa_tri_horaria:
+  nome: "Tri-horária"
+  descricao: "Tarifa tri-horária com horários de vazio, ponta e cheio"
+  horario_vazio:
+    preco_kwh: 0.104
+    descricao: "Horário de vazio econômico"
+    periodos:
+      - inicio: 0
+        fim: 7
+      - inicio: 22
+        fim: 24
+  horario_ponta:
+    preco_kwh: 0.312
+    descricao: "Horário de ponta"
+    periodos:
+      - inicio: 18
+        fim: 21
+  horario_cheio:
+    preco_kwh: 0.2584
+    descricao: "Horário cheio"
+    periodos:
+      - inicio: 7
+        fim: 18
+      - inicio: 21
+        fim: 22
+
+# Tarifa Ciclo Diário (tarifas especiais)
+tarifa_ciclo_diario:
+  nome: "Ciclo Diário"
+  descricao: "Tarifa com ciclo diário de preços"
+  periodos:
+    - inicio: 0
+      fim: 7
+      preco_kwh: 0.104
+      descricao: "Vazio"
+    - inicio: 7
+      fim: 9
+      preco_kwh: 0.2584
+      descricao: "Cheio"
+    - inicio: 9
+      fim: 12
+      preco_kwh: 0.312
+      descricao: "Ponta"
+    - inicio: 12
+      fim: 14
+      preco_kwh: 0.2584
+      descricao: "Cheio"
+    - inicio: 14
+      fim: 18
+      preco_kwh: 0.312
+      descricao: "Ponta"
+    - inicio: 18
+      fim: 21
+      preco_kwh: 0.312
+      descricao: "Ponta"
+    - inicio: 21
+      fim: 22
+      preco_kwh: 0.2584
+      descricao: "Cheio"
+    - inicio: 22
+      fim: 24
+      preco_kwh: 0.104
+      descricao: "Vazio"
+
+# Configurações adicionais
+configuracoes:
+  # Fatores de conversão
+  conversao:
+    kw_para_kwh: 0.25  # 15 minutos = 0.25 horas
+  
+  # Benchmarks de consumo (kWh/mês)
+  benchmarks:
+    residencial_medio: 150
+    residencial_eficiente: 100
+    residencial_ineficiente: 250
+    comercial_pequeno: 500
+    comercial_medio: 1500
+  
+  # Impostos e taxas adicionais
+  impostos:
+    iva: 0.23  # 23% IVA
+    taxa_acessos: 0.0  # Taxa de acessos à rede (€/dia)
+    imposto_especial: 0.0  # Imposto especial sobre consumo elétrico

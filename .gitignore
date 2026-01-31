@@ -24,12 +24,11 @@ wheels/
 venv/
 env/
 ENV/
-env.bak/
-venv.bak/
+.venv
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*.ipynb_checkpoints/
+*.ipynb_checkpoints
 
 # IDEs
 .vscode/
@@ -38,18 +37,43 @@ venv.bak/
 *.swo
 *~
 
-# OS
+# Logs
+logs/
+*.log
+
+# Cache
+cache/
+*.cache
+
+# Dados processados
+processed/*.csv
+processed/*.xlsx
+processed/*.json
+!processed/.gitkeep
+
+# Relatórios
+reports/**/*.pdf
+reports/**/*.png
+reports/**/*.jpg
+!reports/.gitkeep
+!reports/mensal/.gitkeep
+!reports/anual/.gitkeep
+
+# Configurações locais
+config/local.yaml
+config/*.local.yaml
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Sistemas operativos
 .DS_Store
 Thumbs.db
 
-# Project specific - Data folders
-data/*.csv
-!data/.gitkeep
-processed/*.csv
-processed/*.png
-processed/*.jpg
-processed/*.jpeg
-
-# Keep original data files but ignore processed ones
-# Uncomment the line below if you want to ignore all data files
-# data/
+# Backup
+*.bak
+*.backup
+*~

@@ -1,0 +1,90 @@
+# Configuração principal para análise de consumo de eletricidade
+
+# Caminhos dos diretórios
+caminhos:
+  dados: "data"
+  processados: "processed"
+  relatorios: "reports"
+  cache: "cache"
+  logs: "logs"
+
+# Configuração de logging
+logging:
+  nivel: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  ficheiro: "logs/analise.log"
+  formato: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Configuração de dados
+dados:
+  formato_data: "%Y/%m/%d"
+  formato_hora: "%H:%M"
+  intervalo_minutos: 15
+  colunas_esperadas:
+    - "Data"
+    - "Hora"
+    - "Consumo registado (kW)"
+    - "Estado"
+
+# Configuração de processamento
+processamento:
+  estrategia_limpeza: "remover"  # remover, media, zero
+  filtrar_estado: "Real"  # Real, Estimado, ou None para ambos
+  adicionar_colunas_calculadas: true
+
+# Configuração de visualização
+visualizacao:
+  figsize_padrao: [12, 6]
+  dpi: 300
+  estilo: "seaborn-v0_8-darkgrid"
+  paleta: "husl"
+  salvar_graficos: false
+  formato_saida: "png"
+
+# Configuração de exportação
+exportacao:
+  formato: "csv"  # csv, excel, json
+  encoding: "utf-8-sig"
+  incluir_indice: false
+  criar_backup: true
+
+# Configuração de análise
+analise:
+  top_picos: 20
+  nivel_significancia: 0.05
+  area_habitacao: null  # Em m², null para não calcular por m²
+
+# Configuração de tarifas
+tarifas:
+  padrao: "simples"  # simples, bi_horaria, tri_horaria
+  parametros:
+    simples:
+      preco: 0.25
+    bi_horaria:
+      preco_vazio: 0.104
+      preco_cheio: 0.2584
+      horas_vazio:
+        - [0, 7]
+        - [22, 24]
+    tri_horaria:
+      preco_vazio: 0.104
+      preco_ponta: 0.312
+      preco_cheio: 0.2584
+      horas_vazio:
+        - [0, 7]
+        - [22, 24]
+      horas_ponta:
+        - [18, 21]
+
+# Configuração de alertas
+alertas:
+  ativo: false
+  consumo_diario_maximo: null  # Em kWh
+  consumo_pico_maximo: null  # Em kW
+  aumento_percentual: null  # % aumento vs período anterior
+  email:
+    ativo: false
+    destinatario: ""
+    servidor_smtp: ""
+    porta: 587
+    usuario: ""
+    senha: ""
