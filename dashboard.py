@@ -40,7 +40,7 @@ except Exception as e:
 
 # Configurar página
 st.set_page_config(
-    page_title="Dashboard de Consumo de Eletricidade",
+    page_title="Near Electric - Dashboard de Consumo",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -51,7 +51,7 @@ plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette("husl")
 
 # Título da aplicação
-st.title("⚡ Dashboard de Análise de Consumo de Eletricidade")
+st.title("⚡ Near Electric - Dashboard de Consumo de Eletricidade")
 st.markdown("---")
 
 # Sidebar - Configurações
@@ -145,12 +145,12 @@ st.sidebar.metric("Consumo Médio", f"{df_filtrado['Consumo registado (kW)'].mea
 
 # Tabs para diferentes visualizações
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "📈 Visão Geral", 
-    "📅 Análise Sazonal", 
-    "🔮 Previsão", 
-    "⚠️ Alertas", 
+    "📈 Visão Geral",
+    "📅 Análise Sazonal",
+    "🔮 Previsão",
     "💰 Tarifas",
     "⚡ Potência",
+    "⚠️ Alertas",
     "📋 Dados"
 ])
 
@@ -374,10 +374,11 @@ with tab3:
     st.subheader("Detalhes da Previsão")
     df_previsao_display = df_previsao.copy()
     df_previsao_display['Data'] = df_previsao_display['DataHora'].dt.strftime('%Y-%m-%d %H:%M')
+    df_previsao_display['Data'] = df_previsao_display['Data'].astype(str)
     st.dataframe(df_previsao_display[['Data', 'Consumo_Previsto (kW)', 'Limite_Inferior (kW)', 'Limite_Superior (kW)']])
 
-# Tab 4: Alertas
-with tab4:
+# Tab 6: Alertas
+with tab6:
     st.header("Alertas de Consumo")
     
     # Configurar alertas
@@ -437,8 +438,8 @@ with tab4:
     else:
         st.success("✅ Nenhum alerta encontrado!")
 
-# Tab 5: Tarifas
-with tab5:
+# Tab 4: Tarifas
+with tab4:
     st.header("Comparação de Tarifas")
     
     from src.tariff_calculator import TarifaSimples, TarifaBiHoraria, TarifaTriHoraria, comparar_tarifas, recomendar_tarifa
@@ -488,8 +489,8 @@ with tab5:
     st.success(f"A tarifa mais económica é: **{tarifa_recomendada.nome}**")
     st.info(f"Custo: €{resumo_recomendacao['custo_total']:.2f}")
 
-# Tab 6: Potência
-with tab6:
+# Tab 5: Potência
+with tab5:
     st.header("Análise de Potência Contratada")
     
     # Configurar potência atual
@@ -566,34 +567,6 @@ with tab6:
         st.metric("Pico Percentil 99", f"{estatisticas['pico_percentil_99']:.4f} kW")
     
     st.markdown(f"**Custo Anual de Consumo ({tipo_tarifa}):** €{custo_consumo_anual:.2f}")
-    
-    # Mapear margem de segurança
-    margem_map = {
-        "Conservadora (50%)": AnalisadorPotencia.MARGEM_SEGURANCA_CONSERVADORA,
-        "Moderada (30%)": AnalisadorPotencia.MARGEM_SEGURANCA_MODERADA,
-        "Otimista (15%)": AnalisadorPotencia.MARGEM_SEGURANCA_OTIMISTA
-    }
-    
-    # Criar analisador de potência
-    analisador_potencia = AnalisadorPotencia(df_filtrado)
-    
-    # Calcular estatísticas
-    estatisticas = analisador_potencia.calcular_estatisticas_potencia()
-    
-    # Mostrar estatísticas
-    st.markdown("---")
-    st.subheader("📊 Estatísticas de Consumo")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Pico Máximo", f"{estatisticas['pico_maximo']:.4f} kW")
-    with col2:
-        st.metric("Pico Médio", f"{estatisticas['pico_medio']:.4f} kW")
-    with col3:
-        st.metric("Pico Percentil 95", f"{estatisticas['pico_percentil_95']:.4f} kW")
-    with col4:
-        st.metric("Pico Percentil 99", f"{estatisticas['pico_percentil_99']:.4f} kW")
     
     # Análise da potência atual
     st.markdown("---")
@@ -720,7 +693,7 @@ with tab6:
     # st.text(relatorio)
 
 # Tab 7: Dados
-with tab6:
+with tab7:
     st.header("Dados de Consumo")
     
     # Mostrar dados
@@ -747,4 +720,5 @@ with tab6:
 # Footer
 st.markdown("---")
 st.markdown("💡 **Dica:** Use os filtros na barra lateral para analisar períodos específicos.")
-st.markdown("⚡ **Dashboard de Análise de Consumo de Eletricidade** - Desenvolvido com Streamlit")
+st.markdown("⚡ **Near Electric** - Desenvolvido por NearDaniel")
+st.markdown("📧 GitHub: [neardaniel-pls](https://github.com/neardaniel-pls)")

@@ -4,6 +4,8 @@ Todas as alterações notáveis deste projeto serão documentadas neste ficheiro
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+**⚡ Near Electric** - Sistema de análise de consumo de eletricidade desenvolvido por NearDaniel
+
 ## [1.2.0] - 2026-01-31
 
 ### Adicionado

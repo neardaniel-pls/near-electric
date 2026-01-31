@@ -1,6 +1,8 @@
-# Documentação da API
+# ⚡ Near Electric - Documentação da API
 
 Documentação das principais funções e classes dos módulos do projeto.
+
+**Desenvolvido por NearDaniel**
 
 ## Índice
 

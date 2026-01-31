@@ -1,6 +1,8 @@
-# Análise de Consumo de Eletricidade
+# ⚡ Near Electric ⚡
 
 Sistema completo para análise de dados de consumo de eletricidade com suporte a múltiplos meses, diferentes tarifas e visualizações avançadas.
+
+Desenvolvido por **NearDaniel**
 
 ## 📁 Estrutura do Projeto
 
@@ -475,8 +477,10 @@ Este projeto é para uso pessoal e educacional.
 
 ## 👤 Autor
 
-Desenvolvido para análise pessoal de consumo de eletricidade.
+**NearDaniel** - Desenvolvido para análise pessoal de consumo de eletricidade.
 
 ---
 
 **Nota:** Este sistema foi criado para analisar ficheiros CSV de consumo de eletricidade. Basta colocar novos ficheiros CSV na pasta `data/` e o sistema detectará automaticamente todos os meses disponíveis para análise.
+
+**⚡ Near Electric** - Sistema de análise de consumo de eletricidade desenvolvido por NearDaniel

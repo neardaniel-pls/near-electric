@@ -1,4 +1,6 @@
-# Dependências do projeto Análise de Consumo de Eletricidade
+# ⚡ Near Electric - Dependências do projeto
+
+# Desenvolvido por NearDaniel 
 
 # Core dependencies
 pandas>=2.0.0

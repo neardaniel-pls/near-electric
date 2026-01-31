@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Script de setup para o projeto Análise de Consumo de Eletricidade."""
+"""⚡ Near Electric - Script de setup para o projeto de Análise de Consumo de Eletricidade.
+
+Desenvolvido por NearDaniel 
+"""
 
 import sys
 import subprocess

@@ -4,11 +4,12 @@ import glob
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
 import pandas as pd
 import logging
 
 from .utils import validar_diretorio
+from .exceptions import DataLoadError, InvalidDataFormatError
 
 
 logger = logging.getLogger(__name__)
@@ -55,11 +56,11 @@ class CarregadorDados:
             Tupla com (DataFrame processado, nome do ficheiro).
             
         Raises:
-            FileNotFoundError: Se o ficheiro não existir.
-            ValueError: Se o ficheiro não tiver as colunas esperadas.
+            DataLoadError: Se houver erro ao carregar o ficheiro.
+            InvalidDataFormatError: Se o ficheiro não tiver as colunas esperadas.
         """
         if not Path(caminho).exists():
-            raise FileNotFoundError(f"Ficheiro não encontrado: {caminho}")
+            raise DataLoadError(f"Ficheiro não encontrado: {caminho}")
         
         nome_ficheiro = os.path.basename(caminho)
         logger.debug(f"Carregando: {nome_ficheiro}")
@@ -69,7 +70,7 @@ class CarregadorDados:
             df = pd.read_csv(caminho, encoding='utf-8-sig')
         except Exception as e:
             logger.error(f"Erro ao ler ficheiro {caminho}: {e}")
-            raise
+            raise DataLoadError(f"Erro ao ler ficheiro {caminho}: {e}") from e
         
         # Validar colunas
         self._validar_estrutura(df, caminho)
@@ -176,12 +177,12 @@ class CarregadorDados:
             caminho: Caminho do ficheiro (para logging).
             
         Raises:
-            ValueError: Se o DataFrame não tiver as colunas esperadas.
+            InvalidDataFormatError: Se o DataFrame não tiver as colunas esperadas.
         """
         colunas_faltantes = set(self.COLUNAS_ESPERADAS) - set(df.columns)
         
         if colunas_faltantes:
-            raise ValueError(
+            raise InvalidDataFormatError(
                 f"Ficheiro {caminho} não tem as colunas esperadas. "
                 f"Faltam: {colunas_faltantes}"
             )

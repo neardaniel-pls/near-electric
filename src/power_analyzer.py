@@ -10,10 +10,11 @@ a potência contratada mais adequada com base nos dados de consumo.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from enum import Enum
 
-from src.utils import setup_logging, carregar_config
+from .utils import setup_logging, carregar_config
+from .exceptions import ConfigurationError, PowerAnalysisError
 
 logger = setup_logging()
 
@@ -42,7 +43,7 @@ try:
     for potencia, dados in config_potencias.get('potencias', {}).items():
         NOMES_POTENCIAS[potencia] = dados.get('nome', '')
     
-except Exception as e:
+except (ConfigurationError, Exception) as e:
     logger.warning(f"Erro ao carregar configuração de potência: {e}. Usando valores padrão.")
     POTENCIA_ATUAL_PADRAO = 10.35
     CUSTOS_POTENCIA = {
@@ -116,12 +117,16 @@ class AnalisadorPotencia:
         self.df = df.copy()
         self._validar_colunas()
         
-    def _validar_colunas(self):
-        """Valida se as colunas necessárias existem."""
+    def _validar_colunas(self) -> None:
+        """Valida se as colunas necessárias existem.
+        
+        Raises:
+            PowerAnalysisError: Se colunas necessárias não existirem.
+        """
         colunas_necessarias = ['Consumo registado (kW)']
         for col in colunas_necessarias:
             if col not in self.df.columns:
-                raise ValueError(f"Coluna '{col}' não encontrada no DataFrame")
+                raise PowerAnalysisError(f"Coluna '{col}' não encontrada no DataFrame")
     
     def calcular_estatisticas_potencia(self) -> Dict:
         """

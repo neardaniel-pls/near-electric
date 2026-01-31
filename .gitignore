@@ -1,4 +1,6 @@
-# Python
+# ⚡ Near Electric - .gitignore
+
+# Desenvolvido por NearDaniel 
 __pycache__/
 *.py[cod]
 *$py.class

@@ -1,6 +1,6 @@
 """Módulo para análises estatísticas de consumo de eletricidade."""
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any, Literal
 import pandas as pd
 import numpy as np
 from scipy import stats
@@ -161,11 +161,11 @@ class AnalisadorConsumo:
         return padroes
     
     def comparar_periodos(
-        self, 
+        self,
         periodo1: Tuple[int, int],
         periodo2: Tuple[int, int],
-        tipo: str = 'mes'
-    ) -> Dict:
+        tipo: Literal['mes', 'dia'] = 'mes'
+    ) -> Dict[str, Any]:
         """Compara consumo entre dois períodos.
         
         Args:

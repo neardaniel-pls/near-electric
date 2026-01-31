@@ -7,12 +7,20 @@ from typing import Optional
 import yaml
 
 
+# Singleton pattern para logging
+_logging_configured = False
+_logger_instance = None
+
+
 def setup_logging(
     log_file: str = "analise.log",
     log_level: str = "INFO",
     log_format: Optional[str] = None
 ) -> logging.Logger:
-    """Configura logging profissional para o projeto.
+    """Configura logging profissional para o projeto (singleton pattern).
+    
+    Esta função usa um padrão singleton para garantir que o logging
+    seja configurado apenas uma vez, evitando reconfigurações desnecessárias.
     
     Args:
         log_file: Caminho para o ficheiro de log.
@@ -26,6 +34,12 @@ def setup_logging(
         >>> logger = setup_logging(log_level="DEBUG")
         >>> logger.info("Mensagem informativa")
     """
+    global _logging_configured, _logger_instance
+    
+    # Retornar logger existente se já configurado
+    if _logging_configured and _logger_instance is not None:
+        return _logger_instance
+    
     if log_format is None:
         log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     
@@ -50,10 +64,30 @@ def setup_logging(
         force=True  # Reconfigurar se já existir
     )
     
-    logger = logging.getLogger(__name__)
-    logger.info(f"Logging configurado: nível={log_level}, ficheiro={log_file}")
+    _logger_instance = logging.getLogger(__name__)
+    _logging_configured = True
+    _logger_instance.info(f"Logging configurado: nível={log_level}, ficheiro={log_file}")
     
-    return logger
+    return _logger_instance
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Obtém um logger configurado.
+    
+    Args:
+        name: Nome do logger.
+        
+    Returns:
+        Logger configurado.
+        
+    Example:
+        >>> logger = get_logger(__name__)
+        >>> logger.info("Mensagem informativa")
+    """
+    # Garantir que logging está configurado
+    if not _logging_configured:
+        setup_logging()
+    return logging.getLogger(name)
 
 
 def carregar_config(caminho: str = "config/config.yaml") -> dict:
