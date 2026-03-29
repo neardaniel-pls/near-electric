@@ -6,8 +6,6 @@ import pandas as pd
 import numpy as np
 import logging
 
-from .utils import formatar_numero
-
 
 logger = logging.getLogger(__name__)
 
@@ -139,15 +137,15 @@ class TarifaBiHoraria(Tarifa):
         
         df = df.copy()
         
-        # Determinar horário (vazio ou cheio)
-        df['Horario'] = df['HoraNum'].apply(
-            lambda h: 'vazio' if self._eh_horario_vazio(h) else 'cheio'
+        df['Preco_kWh'] = np.select(
+            [
+                df['HoraNum'].between(0, 6, inclusive='both'),
+                df['HoraNum'].between(22, 23, inclusive='both'),
+            ],
+            [self.preco_vazio, self.preco_vazio],
+            default=self.preco_cheio
         )
-        
-        # Aplicar preços
-        df['Preco_kWh'] = df['Horario'].apply(
-            lambda h: self.preco_vazio if h == 'vazio' else self.preco_cheio
-        )
+        df['Horario'] = np.where(df['Preco_kWh'] == self.preco_vazio, 'vazio', 'cheio')
         
         # Calcular custo
         df['Custo_EUR'] = df['Consumo_kWh'] * df['Preco_kWh']
@@ -334,7 +332,7 @@ def comparar_tarifas(
     df_comparacao = pd.DataFrame(resultados)
     
     # Ordenar por custo total
-    df_comparacao = df_comparacao.sort_values('custo_total')
+    df_comparacao = df_comparacao.sort_values('custo_total').reset_index(drop=True)
     
     logger.info("Comparação de tarifas concluída")
     
@@ -366,17 +364,19 @@ def recomendar_tarifa(
     
     # Encontrar tarifa mais económica
     idx_melhor = df_comparacao['custo_total'].idxmin()
-    melhor_tarifa = tarifas[idx_melhor]
-    melhor_resumo = df_comparacao.iloc[idx_melhor].to_dict()
+    melhor_nome = df_comparacao.loc[idx_melhor, 'tarifa']
+    melhor_tarifa = next(t for t in tarifas if t.nome == melhor_nome)
+    melhor_resumo = df_comparacao.loc[idx_melhor].to_dict()
     
     # Calcular economia em relação à mais cara
     idx_pior = df_comparacao['custo_total'].idxmax()
     pior_custo = df_comparacao.loc[idx_pior, 'custo_total']
+    pior_nome = df_comparacao.loc[idx_pior, 'tarifa']
     economia = pior_custo - melhor_resumo['custo_total']
     
     logger.info(
         f"Tarifa recomendada: {melhor_tarifa.nome} "
-        f"(economia de €{economia:.2f} vs {tarifas[idx_pior].nome})"
+        f"(economia de €{economia:.2f} vs {pior_nome})"
     )
     
     return melhor_tarifa, melhor_resumo

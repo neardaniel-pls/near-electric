@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
+REGISTROS_POR_DIA = 96
+
 
 class PrevisorConsumo:
     """Classe para previsão de consumo de eletricidade."""
@@ -62,12 +64,15 @@ class PrevisorConsumo:
             window=janela, min_periods=1
         ).mean()
         
-        # Obter última média móvel
         ultima_media = df_ordenado['MediaMovel'].iloc[-1]
         
-        # Criar datas futuras
         ultima_data = df_ordenado['DataHora'].iloc[-1]
-        datas_futuras = [ultima_data + timedelta(hours=i) for i in range(1, dias_futuros * 24 + 1)]
+        total_registros = dias_futuros * REGISTROS_POR_DIA
+        datas_futuras = pd.date_range(
+            start=ultima_data + timedelta(minutes=15),
+            periods=total_registros,
+            freq='15min'
+        )
         
         # Criar DataFrame de previsão
         df_previsao = pd.DataFrame({
@@ -93,36 +98,32 @@ class PrevisorConsumo:
         """
         logger.info(f"Previsão por padrão semanal: {dias_futuros} dias")
         
-        # Calcular padrão semanal (média por hora e dia da semana)
+        media_geral = self.df['Consumo registado (kW)'].mean()
         padrao = self.df.groupby(['DiaSemana', 'HoraNum'])['Consumo registado (kW)'].mean()
         
-        # Obter última data
         ultima_data = self.df['DataHora'].iloc[-1]
         
-        # Gerar datas futuras
-        datas_futuras = []
-        consumos_previstos = []
+        total_registros = dias_futuros * REGISTROS_POR_DIA
+        datas_futuras = pd.date_range(
+            start=ultima_data + timedelta(minutes=15),
+            periods=total_registros,
+            freq='15min'
+        )
+        df_futuro = pd.DataFrame({'DataHora': datas_futuras})
+        df_futuro['DiaSemana'] = df_futuro['DataHora'].dt.weekday
+        df_futuro['HoraNum'] = df_futuro['DataHora'].dt.hour
         
-        for i in range(1, dias_futuros * 24 + 1):
-            data_futura = ultima_data + timedelta(hours=i)
-            dia_semana = data_futura.weekday()
-            hora = data_futura.hour
-            
-            # Obter consumo previsto do padrão
-            if (dia_semana, hora) in padrao.index:
-                consumo = padrao[(dia_semana, hora)]
-            else:
-                # Se não houver dados para essa combinação, usar média geral
-                consumo = self.df['Consumo registado (kW)'].mean()
-            
-            datas_futuras.append(data_futura)
-            consumos_previstos.append(consumo)
+        df_futuro = df_futuro.merge(
+            padrao,
+            left_on=['DiaSemana', 'HoraNum'],
+            right_index=True,
+            how='left'
+        )
         
-        df_previsao = pd.DataFrame({
-            'DataHora': datas_futuras,
-            'Consumo_Previsto (kW)': consumos_previstos,
-            'Metodo': 'PadraoSemanal'
-        })
+        df_futuro['Consumo_Previsto (kW)'] = df_futuro['Consumo registado (kW)'].fillna(media_geral)
+        
+        df_previsao = df_futuro[['DataHora', 'Consumo_Previsto (kW)']].copy()
+        df_previsao['Metodo'] = 'PadraoSemanal'
         
         logger.info(f"Previsão gerada: {len(df_previsao)} pontos")
         return df_previsao
@@ -143,33 +144,24 @@ class PrevisorConsumo:
         
         # Calcular padrão diário (média por hora)
         padrao = self.df.groupby('HoraNum')['Consumo registado (kW)'].mean()
+        media_geral = self.df['Consumo registado (kW)'].mean()
         
-        # Obter última data
         ultima_data = self.df['DataHora'].iloc[-1]
         
-        # Gerar datas futuras
-        datas_futuras = []
-        consumos_previstos = []
+        total_registros = dias_futuros * REGISTROS_POR_DIA
+        datas_futuras = pd.date_range(
+            start=ultima_data + timedelta(minutes=15),
+            periods=total_registros,
+            freq='15min'
+        )
+        df_futuro = pd.DataFrame({'DataHora': datas_futuras})
+        df_futuro['HoraNum'] = df_futuro['DataHora'].dt.hour
         
-        for i in range(1, dias_futuros * 24 + 1):
-            data_futura = ultima_data + timedelta(hours=i)
-            hora = data_futura.hour
-            
-            # Obter consumo previsto do padrão
-            if hora in padrao.index:
-                consumo = padrao[hora]
-            else:
-                # Se não houver dados para essa hora, usar média geral
-                consumo = self.df['Consumo registado (kW)'].mean()
-            
-            datas_futuras.append(data_futura)
-            consumos_previstos.append(consumo)
+        # Lookup padrão diário
+        df_futuro['Consumo_Previsto (kW)'] = df_futuro['HoraNum'].map(padrao).fillna(media_geral)
         
-        df_previsao = pd.DataFrame({
-            'DataHora': datas_futuras,
-            'Consumo_Previsto (kW)': consumos_previstos,
-            'Metodo': 'PadraoDiario'
-        })
+        df_previsao = df_futuro[['DataHora', 'Consumo_Previsto (kW)']].copy()
+        df_previsao['Metodo'] = 'PadraoDiario'
         
         logger.info(f"Previsão gerada: {len(df_previsao)} pontos")
         return df_previsao
@@ -206,19 +198,14 @@ class PrevisorConsumo:
         tendencia = np.poly1d(coeficiente)
         
         # Prever valores futuros
-        datas_futuras = []
-        consumos_previstos = []
-        
-        for i in range(1, dias_futuros * 24 + 1):
-            data_futura = df_ordenado['DataHora'].iloc[-1] + timedelta(hours=i)
-            x_futuro = len(df_tendencia) + i
-            consumo = tendencia(x_futuro)
-            
-            # Garantir que o consumo não seja negativo
-            consumo = max(consumo, 0)
-            
-            datas_futuras.append(data_futura)
-            consumos_previstos.append(consumo)
+        total_registros = dias_futuros * REGISTROS_POR_DIA
+        datas_futuras = pd.date_range(
+            start=df_ordenado['DataHora'].iloc[-1] + timedelta(minutes=15),
+            periods=total_registros,
+            freq='15min'
+        )
+        x_futuros = np.arange(len(df_tendencia) + 1, len(df_tendencia) + total_registros + 1)
+        consumos_previstos = np.maximum(tendencia(x_futuros), 0)
         
         df_previsao = pd.DataFrame({
             'DataHora': datas_futuras,

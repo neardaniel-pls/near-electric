@@ -6,7 +6,7 @@ import numpy as np
 from scipy import stats
 import logging
 
-from .utils import formatar_numero, calcular_percentual
+from .utils import calcular_percentual
 
 
 logger = logging.getLogger(__name__)
@@ -185,6 +185,16 @@ class AnalisadorConsumo:
             df2 = self.df[(self.df['Ano'] == periodo2[0]) & (self.df['Mes'] == periodo2[1])]
             label1 = f"{periodo1[1]}/{periodo1[0]}"
             label2 = f"{periodo2[1]}/{periodo2[0]}"
+        elif tipo == 'dia':
+            if 'Data' not in self.df.columns:
+                logger.error("Coluna 'Data' não encontrada para comparação por dia")
+                return {}
+            dia1 = pd.Timestamp(periodo1[0], periodo1[1], periodo1[2]) if len(periodo1) == 3 else pd.Timestamp(*periodo1)
+            dia2 = pd.Timestamp(periodo2[0], periodo2[1], periodo2[2]) if len(periodo2) == 3 else pd.Timestamp(*periodo2)
+            df1 = self.df[self.df['Data'].dt.date == dia1.date()]
+            df2 = self.df[self.df['Data'].dt.date == dia2.date()]
+            label1 = dia1.strftime('%d/%m/%Y')
+            label2 = dia2.strftime('%d/%m/%Y')
         else:
             logger.error(f"Tipo de período não suportado: {tipo}")
             return {}
@@ -294,48 +304,16 @@ class AnalisadorConsumo:
         Returns:
             Dicionário com relatório completo.
         """
+        picos = self.identificar_picos(10)
+
         relatorio = {
             'estatisticas_gerais': self.calcular_estatisticas_gerais(),
             'padroes_temporais': self.analisar_padroes_temporais(),
-            'picos': self.identificar_picos(10).to_dict('records') if len(self.identificar_picos(10)) > 0 else [],
+            'picos': picos.to_dict('records') if len(picos) > 0 else [],
             'eficiencia': self.analisar_eficiencia()
         }
         
         logger.info("Relatório completo gerado")
-        
+
         return relatorio
 
-
-def calcular_estatisticas(df: pd.DataFrame) -> Dict:
-    """Função conveniente para calcular estatísticas.
-    
-    Args:
-        df: DataFrame com dados de consumo.
-        
-    Returns:
-        Dicionário com estatísticas.
-        
-    Example:
-        >>> estatisticas = calcular_estatisticas(df)
-        >>> print(f"Total: {estatisticas['total']:.2f} kW")
-    """
-    analisador = AnalisadorConsumo(df)
-    return analisador.calcular_estatisticas_gerais()
-
-
-def identificar_picos(df: pd.DataFrame, top_n: int = 20) -> pd.DataFrame:
-    """Função conveniente para identificar picos.
-    
-    Args:
-        df: DataFrame com dados de consumo.
-        top_n: Número de picos a identificar.
-        
-    Returns:
-        DataFrame com os picos.
-        
-    Example:
-        >>> picos = identificar_picos(df, top_n=10)
-        >>> print(picos.head())
-    """
-    analisador = AnalisadorConsumo(df)
-    return analisador.identificar_picos(top_n)

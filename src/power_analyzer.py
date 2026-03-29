@@ -13,35 +13,38 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
 from enum import Enum
 
-from .utils import setup_logging, carregar_config
+from .utils import carregar_config
 from .exceptions import ConfigurationError, PowerAnalysisError
+from .tariff_calculator import TarifaSimples, TarifaBiHoraria, TarifaTriHoraria
 
-logger = setup_logging()
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Carregar configuração
 try:
     config_potencias = carregar_config('config/potencias.yaml')
+    config_tarifas = carregar_config('config/tariffs.yaml')
     config_principal = carregar_config('config/config.yaml')
     POTENCIA_ATUAL_PADRAO = config_principal.get('potencia', {}).get('atual', 10.35)
     
-    # Carregar custos de potência
     CUSTOS_POTENCIA = {}
-    for potencia, dados in config_potencias.get('potencias', {}).items():
-        CUSTOS_POTENCIA[potencia] = dados.get('custo_mensal', 0)
+    for potencia_str, dados in config_potencias.get('potencias', {}).items():
+        potencia_float = float(potencia_str)
+        CUSTOS_POTENCIA[potencia_float] = dados.get('custo_mensal', 0)
     
-    # Carregar preços de consumo por tipo de tarifa
-    TARIFAS_CONSUMO = config_potencias.get('tarifas_consumo', {})
-    PRECO_SIMPLES = TARIFAS_CONSUMO.get('simples', {}).get('preco_kwh', 0.1424)
-    PRECO_BI_VAZIO = TARIFAS_CONSUMO.get('bi_horaria', {}).get('preco_vazio', 0.0987)
-    PRECO_BI_CHEIO = TARIFAS_CONSUMO.get('bi_horaria', {}).get('preco_cheio', 0.1633)
-    PRECO_TRI_VAZIO = TARIFAS_CONSUMO.get('tri_horaria', {}).get('preco_vazio', 0.0987)
-    PRECO_TRI_PONTA = TARIFAS_CONSUMO.get('tri_horaria', {}).get('preco_ponta', 0.1633)
-    PRECO_TRI_CHEIO = TARIFAS_CONSUMO.get('tri_horaria', {}).get('preco_cheio', 0.1633)
+    TARIFAS_CONSUMO = config_tarifas.get('tarifa_simples', {})
+    PRECO_SIMPLES = TARIFAS_CONSUMO.get('preco_kwh', 0.25)
+    PRECO_BI_VAZIO = config_tarifas.get('tarifa_bi_horaria', {}).get('horario_vazio', {}).get('preco_kwh', 0.104)
+    PRECO_BI_CHEIO = config_tarifas.get('tarifa_bi_horaria', {}).get('horario_cheio', {}).get('preco_kwh', 0.2584)
+    PRECO_TRI_VAZIO = config_tarifas.get('tarifa_tri_horaria', {}).get('horario_vazio', {}).get('preco_kwh', 0.104)
+    PRECO_TRI_PONTA = config_tarifas.get('tarifa_tri_horaria', {}).get('horario_ponta', {}).get('preco_kwh', 0.312)
+    PRECO_TRI_CHEIO = config_tarifas.get('tarifa_tri_horaria', {}).get('horario_cheio', {}).get('preco_kwh', 0.2584)
     
     # Carregar nomes das potências
     NOMES_POTENCIAS = {}
-    for potencia, dados in config_potencias.get('potencias', {}).items():
-        NOMES_POTENCIAS[potencia] = dados.get('nome', '')
+    for potencia_str, dados in config_potencias.get('potencias', {}).items():
+        NOMES_POTENCIAS[float(potencia_str)] = dados.get('nome', '')
     
 except (ConfigurationError, Exception) as e:
     logger.warning(f"Erro ao carregar configuração de potência: {e}. Usando valores padrão.")
@@ -56,12 +59,12 @@ except (ConfigurationError, Exception) as e:
         17.25: 39.60,
         20.70: 47.52
     }
-    PRECO_SIMPLES = 0.1424
-    PRECO_BI_VAZIO = 0.0987
-    PRECO_BI_CHEIO = 0.1633
-    PRECO_TRI_VAZIO = 0.0987
-    PRECO_TRI_PONTA = 0.1633
-    PRECO_TRI_CHEIO = 0.1633
+    PRECO_SIMPLES = 0.25
+    PRECO_BI_VAZIO = 0.104
+    PRECO_BI_CHEIO = 0.2584
+    PRECO_TRI_VAZIO = 0.104
+    PRECO_TRI_PONTA = 0.312
+    PRECO_TRI_CHEIO = 0.2584
     NOMES_POTENCIAS = {
         1.15: "Garagem ou espaços similares de pequenas dimensões",
         2.30: "Apartamento T0 (1 pessoa)",
@@ -90,17 +93,7 @@ class TipoPotencia(Enum):
 class AnalisadorPotencia:
     """Classe para análise de potência contratada."""
     
-    # Definições das potências disponíveis
-    POTENCIAS = {
-        1.15: "Garagem ou espaços similares de pequenas dimensões",
-        2.30: "Apartamento T0 (1 pessoa)",
-        3.45: "Apartamento para 1 a 2 pessoas",
-        6.90: "Apartamento para 3 a 5 pessoas",
-        10.35: "Moradia com mais de 5 pessoas",
-        13.80: "Moradia com piscina",
-        17.25: "Pequenas empresas",
-        20.70: "Médias empresas"
-    }
+    POTENCIAS = dict(sorted(NOMES_POTENCIAS.items()))
     
     # Margens de segurança recomendadas
     MARGEM_SEGURANCA_CONSERVADORA = 0.50  # 50% acima do pico
@@ -331,77 +324,37 @@ class AnalisadorPotencia:
     
     def calcular_custo_consumo_anual(self, tipo_tarifa: str = 'simples') -> float:
         """
-        Calcula o custo anual de consumo baseado no tipo de tarifa.
+        Calcula o custo anual estimado de consumo baseado no tipo de tarifa.
+        
+        Extrapolates from the filtered data range to a full year.
         
         Args:
             tipo_tarifa: Tipo de tarifa ('simples', 'bi_horaria', 'tri_horaria')
         
         Returns:
-            Custo anual de consumo em €
+            Custo anual estimado de consumo em EUR
         """
-        # Total de consumo em kWh (cada registro é de 15 minutos = 0.25 horas)
-        consumo_total_kwh = self.df['Consumo registado (kW)'].sum() * 0.25
-        
-        if tipo_tarifa == 'simples':
-            custo_anual = consumo_total_kwh * PRECO_SIMPLES
-        elif tipo_tarifa == 'bi_horaria':
-            # Separar consumo em vazio e cheio
-            # Horários de vazio: [[0, 7], [22, 24]]
-            # Horários de cheio: [[7, 22], [24, 0]]
-            
-            # Criar coluna de hora
-            df_temp = self.df.copy()
-            df_temp['Hora'] = df_temp['DataHora'].dt.hour
-            
-            # Classificar como vazio ou cheio
-            def classificar_hora(h):
-                # Verificar se está em horário de vazio
-                for vazio in [[0, 7], [22, 24]]:
-                    if vazio[0] <= h < vazio[1]:
-                        return 'vazio'
-                return 'cheio'
-            
-            df_temp['Periodo'] = df_temp['Hora'].apply(classificar_hora)
-            
-            # Separar consumo
-            consumo_vazio = df_temp[df_temp['Periodo'] == 'vazio']['Consumo registado (kW)'].sum() * 0.25
-            consumo_cheio = df_temp[df_temp['Periodo'] == 'cheio']['Consumo registado (kW)'].sum() * 0.25
-            
-            custo_anual = (consumo_vazio * PRECO_BI_VAZIO) + (consumo_cheio * PRECO_BI_CHEIO)
-        elif tipo_tarifa == 'tri_horaria':
-            # Separar consumo em vazio, ponta e cheio
-            # Horários de vazio: [[0, 7], [22, 24]]
-            # Horários de ponta: [[18, 21]]
-            # Horários de cheio: [[7, 18], [21, 22], [24, 0]]
-            
-            # Criar coluna de hora
-            df_temp = self.df.copy()
-            df_temp['Hora'] = df_temp['DataHora'].dt.hour
-            
-            # Classificar como vazio, ponta ou cheio
-            def classificar_hora_tri(h):
-                # Verificar se está em horário de vazio
-                for vazio in [[0, 7], [22, 24]]:
-                    if vazio[0] <= h < vazio[1]:
-                        return 'vazio'
-                # Verificar se está em horário de ponta
-                for ponta in [[18, 21]]:
-                    if ponta[0] <= h < ponta[1]:
-                        return 'ponta'
-                return 'cheio'
-            
-            df_temp['Periodo'] = df_temp['Hora'].apply(classificar_hora_tri)
-            
-            # Separar consumo
-            consumo_vazio = df_temp[df_temp['Periodo'] == 'vazio']['Consumo registado (kW)'].sum() * 0.25
-            consumo_ponta = df_temp[df_temp['Periodo'] == 'ponta']['Consumo registado (kW)'].sum() * 0.25
-            consumo_cheio = df_temp[df_temp['Periodo'] == 'cheio']['Consumo registado (kW)'].sum() * 0.25
-            
-            custo_anual = (consumo_vazio * PRECO_TRI_VAZIO) + (consumo_ponta * PRECO_TRI_PONTA) + (consumo_cheio * PRECO_TRI_CHEIO)
-        else:
-            custo_anual = consumo_total_kwh * PRECO_SIMPLES
-        
-        return custo_anual
+        df_temp = self.df.copy()
+
+        if 'Consumo_kWh' not in df_temp.columns:
+            df_temp['Consumo_kWh'] = df_temp['Consumo registado (kW)'] * 0.25
+
+        tarifas = {
+            'simples': TarifaSimples(PRECO_SIMPLES),
+            'bi_horaria': TarifaBiHoraria(PRECO_BI_VAZIO, PRECO_BI_CHEIO),
+            'tri_horaria': TarifaTriHoraria(PRECO_TRI_VAZIO, PRECO_TRI_PONTA, PRECO_TRI_CHEIO),
+        }
+
+        tarifa = tarifas.get(tipo_tarifa, tarifas['simples'])
+        df_custo = tarifa.calcular_custo(df_temp)
+        custo_periodo = df_custo['Custo_EUR'].sum()
+
+        if 'DataHora' in df_temp.columns and len(df_temp) > 1:
+            dias_no_periodo = (df_temp['DataHora'].max() - df_temp['DataHora'].min()).days
+            if dias_no_periodo > 0:
+                return custo_periodo / dias_no_periodo * 365
+
+        return custo_periodo
     
     def obter_custo_potencia(self, potencia: float) -> float:
         """

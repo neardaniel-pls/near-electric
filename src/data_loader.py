@@ -2,7 +2,6 @@
 
 import glob
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Optional, Any
 import pandas as pd
@@ -87,9 +86,9 @@ class CarregadorDados:
             raise ValueError(f"Formato de data/hora inválido em {caminho}")
         
         # Criar coluna datetime combinada
-        df['DataHora'] = df.apply(
-            lambda row: datetime.combine(row['Data'], row['Hora']), 
-            axis=1
+        df['DataHora'] = pd.to_datetime(
+            df['Data'].dt.strftime('%Y-%m-%d') + ' ' + df['Hora'].astype(str),
+            format='%Y-%m-%d %H:%M:%S'
         )
         
         # Criar colunas adicionais para análise
@@ -97,8 +96,17 @@ class CarregadorDados:
         df['Mes'] = df['Data'].dt.month
         df['Ano'] = df['Data'].dt.year
         df['DiaSemana'] = df['Data'].dt.dayofweek
-        df['NomeDiaSemana'] = df['Data'].dt.day_name()
-        df['NomeMes'] = df['Data'].dt.month_name()
+        df['NomeDiaSemana'] = df['Data'].dt.day_name().map({
+            'Monday': 'Segunda-feira', 'Tuesday': 'Terça-feira',
+            'Wednesday': 'Quarta-feira', 'Thursday': 'Quinta-feira',
+            'Friday': 'Sexta-feira', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
+        })
+        df['NomeMes'] = df['Data'].dt.month_name().map({
+            'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+            'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+            'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+            'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+        })
         df['HoraNum'] = df['DataHora'].dt.hour
         
         # Converter consumo para numérico
@@ -162,9 +170,14 @@ class CarregadorDados:
         
         df_filtrado = df[df['Estado'] == estado].copy()
         
+        total = len(df)
+        if total == 0:
+            logger.warning(f"DataFrame vazio, não é possível calcular percentual para estado '{estado}'.")
+            return df_filtrado
+        
         logger.info(
             f"Registros {estado}: {len(df_filtrado)} "
-            f"({len(df_filtrado)/len(df)*100:.1f}% do total)"
+            f"({len(df_filtrado)/total*100:.1f}% do total)"
         )
         
         return df_filtrado
@@ -211,20 +224,3 @@ class CarregadorDados:
         
         return info
 
-
-def carregar_dados(data_dir: str = "data") -> Tuple[pd.DataFrame, CarregadorDados]:
-    """Função conveniente para carregar todos os dados.
-    
-    Args:
-        data_dir: Diretório onde estão os ficheiros CSV.
-        
-    Returns:
-        Tupla com (DataFrame combinado, instância do CarregadorDados).
-        
-    Example:
-        >>> df, carregador = carregar_dados()
-        >>> print(f"Carregados {len(df)} registros")
-    """
-    carregador = CarregadorDados(data_dir)
-    df = carregador.carregar_todos()
-    return df, carregador

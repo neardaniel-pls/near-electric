@@ -188,18 +188,3 @@ def calcular_percentual(valor: float, total: float) -> float:
         raise ValueError("Total não pode ser zero")
     return (valor / total) * 100
 
-
-def normalizar_texto(texto: str) -> str:
-    """Normaliza texto removendo espaços extras e convertendo para minúsculas.
-    
-    Args:
-        texto: Texto a normalizar.
-        
-    Returns:
-        Texto normalizado.
-        
-    Example:
-        >>> normalizar_texto("  Exemplo de TEXTO  ")
-        'exemplo de texto'
-    """
-    return texto.strip().lower()

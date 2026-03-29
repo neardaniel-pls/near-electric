@@ -6,27 +6,27 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 
-from .utils import formatar_numero
-
 
 logger = logging.getLogger(__name__)
 
+_ESTILO_PADRAO = 'seaborn-v0_8-darkgrid'
+_PALETA_PADRAO = 'husl'
+_estilo_configurado = False
 
-# Configurar estilo padrão
-plt.style.use('seaborn-v0_8-darkgrid')
-sns.set_palette("husl")
+
+def _configurar_estilo():
+    global _estilo_configurado
+    if not _estilo_configurado:
+        plt.style.use(_ESTILO_PADRAO)
+        sns.set_palette(_PALETA_PADRAO)
+        _estilo_configurado = True
 
 
 class VisualizadorConsumo:
     """Classe para visualização de consumo de eletricidade."""
     
     def __init__(self, df: pd.DataFrame, figsize: tuple = (12, 6)):
-        """Inicializa o visualizador.
-        
-        Args:
-            df: DataFrame com dados de consumo.
-            figsize: Tamanho padrão das figuras (largura, altura).
-        """
+        _configurar_estilo()
         self.df = df.copy()
         self.figsize = figsize
     
@@ -448,7 +448,6 @@ class VisualizadorConsumo:
             heatmap_data,
             cmap=cmap,
             annot=False,
-            fmt='.2f',
             cbar_kws={'label': 'Consumo Médio (kW)'},
             ax=ax
         )
@@ -505,7 +504,6 @@ class VisualizadorConsumo:
             heatmap_data,
             cmap=cmap,
             annot=False,
-            fmt='.2f',
             cbar_kws={'label': 'Consumo Médio (kW)'},
             ax=ax
         )
@@ -725,20 +723,3 @@ class VisualizadorConsumo:
         
         return fig
 
-
-def plotar_consumo_temporal(df: pd.DataFrame, salvar: bool = False) -> plt.Figure:
-    """Função conveniente para plotar consumo temporal.
-    
-    Args:
-        df: DataFrame com dados de consumo.
-        salvar: Se True, salva a figura.
-        
-    Returns:
-        Figure do matplotlib.
-        
-    Example:
-        >>> fig = plotar_consumo_temporal(df)
-        >>> plt.show()
-    """
-    visualizador = VisualizadorConsumo(df)
-    return visualizador.plotar_consumo_temporal(salvar=salvar)

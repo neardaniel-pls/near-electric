@@ -87,15 +87,131 @@ class GestorAlertas:
     """Classe para gerenciar alertas de consumo."""
     
     def __init__(self, df: pd.DataFrame):
-        """Inicializa o gestor de alertas.
-        
-        Args:
-            df: DataFrame com dados de consumo.
-        """
         self.df = df.copy()
         self.alertas: List[Alerta] = []
         self.regras: List[Dict] = []
         logger.info(f"GestorAlertas inicializado com {len(df)} registros")
+    
+    def analisar_resumo(self, sensibilidade: float = 1.0) -> Dict:
+        """Gera um resumo de alertas com base na sensibilidade.
+        
+        Args:
+            sensibilidade: Fator de sensibilidade (0.5=conservador, 1.0=normal, 2.0=sensível).
+        
+        Returns:
+            Dicionário com resumo estruturado por categoria.
+        """
+        consumo = self.df['Consumo registado (kW)']
+        media = consumo.mean()
+        desvio = consumo.std()
+        
+        consumo_diario = self.df.groupby(self.df['Data'].dt.date)['Consumo registado (kW)'].sum()
+        media_diaria = consumo_diario.mean()
+        
+        resultado = {}
+        
+        limiar_diario = 1 + 1.0 / sensibilidade
+        picos = consumo_diario[consumo_diario > media_diaria * limiar_diario]
+        if len(picos) > 0:
+            pior = picos.max()
+            ratio = pior / media_diaria if media_diaria > 0 else 0
+            if ratio > 4:
+                dica = (
+                    f"O pior dia ({pior:.1f} kW) é {ratio:.0f}x superior à média — "
+                    "isto é quase certamente um pico de um aparelho de alto consumo "
+                    "(aquecimento central, termoacumulador, ar-condicionado). "
+                    "Verifique o separador Visão Geral para identificar a hora exata."
+                )
+            else:
+                dica = (
+                    "Verifique aparelhos que ficam ligados em standby "
+                    "(TV, routers, carregadores) e confira o isolamento térmico."
+                )
+            resultado['consumo_diario'] = {
+                'total': len(picos),
+                'nivel': 'warning' if len(picos) <= len(consumo_diario) * 0.2 else 'critical',
+                'pior_dia': pior,
+                'media_diaria': media_diaria,
+                'dias_afetados': f"{len(picos)}/{len(consumo_diario)}",
+                'dica': dica,
+            }
+        
+        z_threshold = 3.0 / sensibilidade
+        if desvio > 0:
+            z_scores = ((consumo - media) / desvio).abs()
+            anomalias_mask = z_scores > z_threshold
+            n_anomalias = anomalias_mask.sum()
+        else:
+            n_anomalias = 0
+        
+        if n_anomalias > 0:
+            resultado['anomalias'] = {
+                'total': int(n_anomalias),
+                'nivel': 'warning' if n_anomalias <= 10 else 'critical',
+                'z_threshold': z_threshold,
+                'pico_z': float(z_scores.max()) if desvio > 0 else 0,
+                'dica': (
+                    f"Foram encontrados {n_anomalias} registos com consumo anormalmente alto. "
+                    "Isto pode indicar um aparelho avariado ou um pico de uso (ex: aquecimento elétrico). "
+                    "Verifique os momentos de maior consumo no separador Visão Geral."
+                ),
+            }
+        
+        if 'Ano' in self.df.columns and 'Mes' in self.df.columns:
+            consumo_mensal = self.df.groupby(['Ano', 'Mes'])['Consumo registado (kW)'].sum()
+            meses_com_aumento = []
+            for i in range(1, len(consumo_mensal)):
+                anterior = consumo_mensal.iloc[i - 1]
+                atual = consumo_mensal.iloc[i]
+                if anterior > 0:
+                    pct = (atual - anterior) / anterior * 100
+                    if pct > 20 / sensibilidade:
+                        meses_com_aumento.append({
+                            'de': consumo_mensal.index[i - 1],
+                            'para': consumo_mensal.index[i],
+                            'aumento_pct': pct,
+                        })
+            if meses_com_aumento:
+                maior = max(meses_com_aumento, key=lambda x: x['aumento_pct'])
+                resultado['tendencia'] = {
+                    'total': len(meses_com_aumento),
+                    'nivel': 'warning',
+                    'maior_aumento': maior['aumento_pct'],
+                    'maior_de': maior['de'],
+                    'maior_para': maior['para'],
+                    'dica': (
+                        "O consumo tem vindo a aumentar. Possíveis causas: uso de aquecimento/ar-condicionado, "
+                        "mais pessoas em casa, ou aparelhos mais antigos. Considere rever a tarifa contratada "
+                        "e verificar o isolamento da habitação."
+                    ),
+                }
+        
+        if 'Custo_EUR' in self.df.columns:
+            custo_total = self.df['Custo_EUR'].sum()
+            custo_mensal = self.df.groupby(['Ano', 'Mes'])['Custo_EUR'].sum()
+            media_custo = custo_mensal.mean()
+            custo_alto = custo_mensal[custo_mensal > media_custo * (1 + 0.3 / sensibilidade)]
+            if len(custo_alto) > 0:
+                resultado['custo'] = {
+                    'total': len(custo_alto),
+                    'nivel': 'warning' if len(custo_alto) <= len(custo_mensal) * 0.3 else 'critical',
+                    'custo_medio_mensal': media_custo,
+                    'pior_mes': float(custo_alto.max()),
+                    'dias_analisados': int((self.df['Data'].max() - self.df['Data'].min()).days + 1),
+                    'dica': (
+                        f"O custo médio mensal é €{media_custo:.2f}. "
+                        "Considere passar para tarifa bi-horária ou tri-horária se a maioria "
+                        "do consumo for fora do horário de ponta (ver separador Tarifas)."
+                    ),
+                }
+        
+        resultado['resumo_geral'] = {
+            'total_alertas': sum(v['total'] for v in resultado.values() if isinstance(v, dict) and 'total' in v),
+            'n_categorias': len(resultado),
+            'registos_analisados': len(self.df),
+        }
+        
+        return resultado
     
     def adicionar_regra_consumo_diario(
         self,
@@ -229,18 +345,19 @@ class GestorAlertas:
         if 'DataHora' not in self.df.columns:
             return alertas
         
-        # Verificar cada registro
-        for _, row in self.df.iterrows():
-            if row['Consumo registado (kW)'] > regra['limite_kw']:
-                alerta = Alerta(
-                    tipo=regra['tipo'],
-                    nivel=regra['nivel'],
-                    mensagem=f"Consumo horário de {row['Consumo registado (kW)']:.2f} kW excede limite de {regra['limite_kw']} kW",
-                    data_hora=row['DataHora'],
-                    valor=row['Consumo registado (kW)'],
-                    referencia=regra['limite_kw']
-                )
-                alertas.append(alerta)
+        mask = self.df['Consumo registado (kW)'] > regra['limite_kw']
+        excedentes = self.df[mask]
+        
+        for _, row in excedentes.iterrows():
+            alerta = Alerta(
+                tipo=regra['tipo'],
+                nivel=regra['nivel'],
+                mensagem=f"Consumo horário de {row['Consumo registado (kW)']:.2f} kW excede limite de {regra['limite_kw']} kW",
+                data_hora=row['DataHora'],
+                valor=row['Consumo registado (kW)'],
+                referencia=regra['limite_kw']
+            )
+            alertas.append(alerta)
         
         return alertas
     
@@ -285,27 +402,28 @@ class GestorAlertas:
         if 'DataHora' not in self.df.columns:
             return alertas
         
-        # Calcular Z-score
         media = self.df['Consumo registado (kW)'].mean()
         desvio = self.df['Consumo registado (kW)'].std()
         
         if desvio == 0:
             return alertas
         
-        # Verificar outliers
-        for _, row in self.df.iterrows():
-            z_score = abs((row['Consumo registado (kW)'] - media) / desvio)
-            
-            if z_score > regra['z_score']:
-                alerta = Alerta(
-                    tipo=regra['tipo'],
-                    nivel=regra['nivel'],
-                    mensagem=f"Anomalia detectada: Z-score de {z_score:.2f}",
-                    data_hora=row['DataHora'],
-                    valor=row['Consumo registado (kW)'],
-                    referencia=media
-                )
-                alertas.append(alerta)
+        z_scores = ((self.df['Consumo registado (kW)'] - media) / desvio).abs()
+        mask = z_scores > regra['z_score']
+        anomalias = self.df[mask]
+        z_scores_filtrados = z_scores[mask]
+        
+        for _, row in anomalias.iterrows():
+            z = z_scores_filtrados.loc[row.name]
+            alerta = Alerta(
+                tipo=regra['tipo'],
+                nivel=regra['nivel'],
+                mensagem=f"Anomalia detectada: Z-score de {z:.2f}",
+                data_hora=row['DataHora'],
+                valor=row['Consumo registado (kW)'],
+                referencia=media
+            )
+            alertas.append(alerta)
         
         return alertas
     
@@ -435,39 +553,3 @@ class GestorAlertas:
         self.alertas = []
         logger.info("Alertas limpos")
 
-
-def configurar_alertas_padrao(df: pd.DataFrame) -> GestorAlertas:
-    """Configura alertas padrão para o DataFrame.
-    
-    Args:
-        df: DataFrame com dados de consumo.
-        
-    Returns:
-        GestorAlertas configurado com regras padrão.
-    """
-    gestor = GestorAlertas(df)
-    
-    # Configurar regras padrão
-    media_diaria = df.groupby(df['Data'].dt.date)['Consumo registado (kW)'].sum().mean()
-    media_hora = df['Consumo registado (kW)'].mean()
-    desvio = df['Consumo registado (kW)'].std()
-    
-    # Consumo diário alto (2x média)
-    gestor.adicionar_regra_consumo_diario(limite_kw=media_diaria * 2)
-    
-    # Consumo horário alto (3x média)
-    gestor.adicionar_regra_consumo_horario(limite_kw=media_hora * 3)
-    
-    # Aumento mensal (50%)
-    gestor.adicionar_regra_aumento_mensal(percentual=50)
-    
-    # Anomalias (Z-score > 3)
-    gestor.adicionar_regra_anomalia(z_score=3.0)
-    
-    # Custo alto (se disponível)
-    if 'Custo_EUR' in df.columns:
-        custo_medio = df.groupby(['Ano', 'Mes'])['Custo_EUR'].sum().mean()
-        gestor.adicionar_regra_custo_alto(limite_eur=custo_medio * 1.5)
-    
-    logger.info("Alertas padrão configurados")
-    return gestor

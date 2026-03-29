@@ -6,7 +6,7 @@ import numpy as np
 from scipy import stats
 import logging
 
-from .utils import formatar_numero, calcular_percentual
+from .utils import calcular_percentual
 
 
 logger = logging.getLogger(__name__)
@@ -191,9 +191,11 @@ class ProcessadorDados:
             )
         elif estrategia == 'media':
             media = self.df_processado['Consumo registado (kW)'].mean()
-            self.df_processado['Consumo registado (kW)'].fillna(media, inplace=True)
+            self.df_processado = self.df_processado.copy()
+            self.df_processado['Consumo registado (kW)'] = self.df_processado['Consumo registado (kW)'].fillna(media)
         elif estrategia == 'zero':
-            self.df_processado['Consumo registado (kW)'].fillna(0, inplace=True)
+            self.df_processado = self.df_processado.copy()
+            self.df_processado['Consumo registado (kW)'] = self.df_processado['Consumo registado (kW)'].fillna(0)
         
         logger.info(
             f"Limpeza concluída. "
@@ -261,7 +263,8 @@ class ProcessadorDados:
         if periodo == 'dia':
             groupby = [self.df_processado['Data'].dt.date]
         elif periodo == 'semana':
-            groupby = [self.df_processado['Data'].dt.isocalendar().week]
+            iso = self.df_processado['Data'].dt.isocalendar()
+            groupby = [iso.year, iso.week]
         elif periodo == 'mes':
             groupby = [self.df_processado['Ano'], self.df_processado['Mes']]
         elif periodo == 'ano':
@@ -306,36 +309,3 @@ class ProcessadorDados:
         
         return resumo
 
-
-def validar_dados(df: pd.DataFrame) -> Dict:
-    """Função conveniente para validar dados.
-    
-    Args:
-        df: DataFrame a validar.
-        
-    Returns:
-        Dicionário com relatório de validação.
-        
-    Example:
-        >>> relatorio = validar_dados(df)
-        >>> print(f"Problemas: {relatorio['total_problemas']}")
-    """
-    validador = ValidadorDados(df)
-    return validador.validar()
-
-
-def limpar_dados(df: pd.DataFrame, estrategia: str = 'remover') -> pd.DataFrame:
-    """Função conveniente para limpar dados.
-    
-    Args:
-        df: DataFrame a limpar.
-        estrategia: Estratégia de limpeza.
-        
-    Returns:
-        DataFrame limpo.
-        
-    Example:
-        >>> df_limpo = limpar_dados(df, estrategia='media')
-    """
-    processador = ProcessadorDados(df)
-    return processador.limpar_dados(estrategia=estrategia)
