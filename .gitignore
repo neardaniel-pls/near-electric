@@ -79,3 +79,24 @@ Thumbs.db
 *.bak
 *.backup
 *~
+*.old
+*.orig
+*.tmp
+
+# Security
+*.key
+*.pem
+*.crt
+*.p12
+.env
+.secrets/
+
+# Plans (internal)
+plans/
+
+# Kilo
+.kilo/
+
+# Data files (user-specific)
+data/*.csv
+!data/.gitkeep

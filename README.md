@@ -1,6 +1,9 @@
-# ⚡ Near Electric ⚡
+# Near Electric
 
-Um sistema simples para analisar o consumo de eletricidade. Ajuda a entender como gasta energia, prever custos e escolher a melhor tarifa.
+Um sistema para analisar o consumo de eletricidade no mercado português. Ajuda a entender como gastas energia, prever custos e escolher a melhor tarifa.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 
 Desenvolvido por **NearDaniel**
 
@@ -231,32 +234,34 @@ pytest tests/ --cov=src --cov-report=html
 
 ---
 
-## 📚 Documentação adicional
+## 📚 Documentação
 
-- [`docs/api.md`](docs/api.md) - Documentação da API
-- [`CHANGELOG.md`](CHANGELOG.md) - Histórico de alterações
+### [Hub de Documentação](docs/README.md)
+Documentação completa com guias e referências
 
----
+### [Quick Start](docs/QUICK_START.md)
+Começa em 5 minutos
 
-## 💡 Perguntas Frequentes
+### [Guias](docs/guides/)
+Guias detalhados para cada funcionalidade:
+- [Guia do Dashboard](docs/guides/dashboard-guide.md)
+- [Guia de Análise](docs/guides/analysis-guide.md)
+- [Guia de Configuração](docs/guides/configuration-guide.md)
 
-### Como mudar a tarifa?
-Edita [`config/config.yaml`](config/config.yaml) e altera `tarifas.padrao`.
+### [FAQ](docs/FAQ.md)
+Perguntas frequentes e resolução de problemas
 
-### O que fazer se os dados não carregarem?
-Verifica que o ficheiro CSV tem as colunas: `Data`, `Hora`, `Consumo registado (kW)`, `Estado`.
+### [API Reference](docs/api.md)
+Documentação completa da API
 
-### Como exportar os resultados?
-No dashboard, usa o botão de exportação. Ou via código: `df.to_csv('resultado.csv')`.
-
-### Posso analisar vários anos?
-Sim! Basta colocar ficheiros CSV de diferentes anos na pasta `data/`.
+### [Changelog](CHANGELOG.md)
+Histórico de alterações
 
 ---
 
 ## 📄 Licença
 
-Este projeto é para uso pessoal e educacional.
+Este projeto está licenciado sob a licença MIT - ver o ficheiro [LICENSE](LICENSE) para detalhes.
 
 ---
 
@@ -264,6 +269,19 @@ Este projeto é para uso pessoal e educacional.
 
 **NearDaniel** - Sistema desenvolvido para análise pessoal de consumo de eletricidade.
 
+## Support
+
+- 🐛 [Reportar Bug](https://github.com/neardaniel-pls/near-electric/issues/new?template=bug_report.md)
+- 💡 [Sugerir Funcionalidade](https://github.com/neardaniel-pls/near-electric/issues/new?template=feature_request.md)
+
 ---
 
-**⚡ Near Electric** - Analisa, prevê e otimiza o teu consumo de eletricidade.
+## Related Projects
+
+- **[near-investing](https://github.com/neardaniel-pls/near-investing)**: Portfolio analysis and optimization tool
+- **[near-fire-calculator](https://github.com/neardaniel-pls/near-fire-calculator)**: FIRE calculator for the Portuguese market
+- **[fedora-user-scripts](https://github.com/neardaniel-pls/fedora-user-scripts)**: Utility scripts for Fedora Linux
+
+---
+
+**Near Electric** - Analisa, prevê e otimiza o teu consumo de eletricidade.
