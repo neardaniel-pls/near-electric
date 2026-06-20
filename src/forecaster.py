@@ -101,7 +101,7 @@ class PrevisorConsumo:
         media_geral = self.df['Consumo registado (kW)'].mean()
         padrao = self.df.groupby(['DiaSemana', 'HoraNum'])['Consumo registado (kW)'].mean()
         
-        ultima_data = self.df['DataHora'].iloc[-1]
+        ultima_data = self.df['DataHora'].max()
         
         total_registros = dias_futuros * REGISTROS_POR_DIA
         datas_futuras = pd.date_range(
@@ -146,7 +146,7 @@ class PrevisorConsumo:
         padrao = self.df.groupby('HoraNum')['Consumo registado (kW)'].mean()
         media_geral = self.df['Consumo registado (kW)'].mean()
         
-        ultima_data = self.df['DataHora'].iloc[-1]
+        ultima_data = self.df['DataHora'].max()
         
         total_registros = dias_futuros * REGISTROS_POR_DIA
         datas_futuras = pd.date_range(
@@ -204,7 +204,7 @@ class PrevisorConsumo:
             periods=total_registros,
             freq='15min'
         )
-        x_futuros = np.arange(len(df_tendencia) + 1, len(df_tendencia) + total_registros + 1)
+        x_futuros = np.arange(len(df_tendencia), len(df_tendencia) + total_registros)
         consumos_previstos = np.maximum(tendencia(x_futuros), 0)
         
         df_previsao = pd.DataFrame({

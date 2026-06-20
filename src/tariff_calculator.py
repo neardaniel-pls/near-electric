@@ -115,20 +115,6 @@ class TarifaBiHoraria(Tarifa):
         self.preco_cheio = preco_cheio
         self.horas_vazio = horas_vazio or [(0, 7), (22, 24)]
     
-    def _eh_horario_vazio(self, hora: int) -> bool:
-        """Verifica se uma hora está no horário de vazio.
-        
-        Args:
-            hora: Hora do dia (0-23).
-            
-        Returns:
-            True se for horário de vazio, False caso contrário.
-        """
-        for inicio, fim in self.horas_vazio:
-            if inicio <= hora < fim:
-                return True
-        return False
-    
     def calcular_custo(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calcula custo aplicando tarifa bi-horária."""
         if 'Consumo_kWh' not in df.columns:
@@ -137,15 +123,14 @@ class TarifaBiHoraria(Tarifa):
         
         df = df.copy()
         
-        df['Preco_kWh'] = np.select(
-            [
-                df['HoraNum'].between(0, 6, inclusive='both'),
-                df['HoraNum'].between(22, 23, inclusive='both'),
-            ],
-            [self.preco_vazio, self.preco_vazio],
-            default=self.preco_cheio
-        )
-        df['Horario'] = np.where(df['Preco_kWh'] == self.preco_vazio, 'vazio', 'cheio')
+        # Determinar horário de vazio a partir dos intervalos configurados
+        horas = df['HoraNum']
+        vazio_mask = np.zeros(len(df), dtype=bool)
+        for inicio, fim in self.horas_vazio:
+            vazio_mask |= (horas >= inicio) & (horas < fim)
+        
+        df['Preco_kWh'] = np.where(vazio_mask, self.preco_vazio, self.preco_cheio)
+        df['Horario'] = np.where(vazio_mask, 'vazio', 'cheio')
         
         # Calcular custo
         df['Custo_EUR'] = df['Consumo_kWh'] * df['Preco_kWh']

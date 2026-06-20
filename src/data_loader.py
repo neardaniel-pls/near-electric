@@ -83,7 +83,7 @@ class CarregadorDados:
             df['Hora'] = pd.to_datetime(df['Hora'], format='%H:%M').dt.time
         except Exception as e:
             logger.error(f"Erro ao converter datas em {caminho}: {e}")
-            raise ValueError(f"Formato de data/hora inválido em {caminho}")
+            raise InvalidDataFormatError(f"Formato de data/hora inválido em {caminho}") from e
         
         # Criar coluna datetime combinada
         df['DataHora'] = pd.to_datetime(
@@ -223,4 +223,35 @@ class CarregadorDados:
         }
         
         return info
+
+
+def carregar_dados(
+    data_dir: str = "data",
+    filtrar_real: bool = True
+) -> Tuple[pd.DataFrame, 'CarregadorDados']:
+    """Carrega e combina todos os ficheiros CSV de consumo num único DataFrame.
+    
+    Função utilitária que cria um `CarregadorDados`, carrega todos os CSVs do
+    diretório e, opcionalmente, filtra apenas os registos 'Real'.
+    
+    Args:
+        data_dir: Diretório onde estão os ficheiros CSV.
+        filtrar_real: Se True, retorna apenas registos com Estado='Real'.
+        
+    Returns:
+        Tupla com (DataFrame combinado, instância de CarregadorDados).
+        Retorna (DataFrame vazio, carregador) se não houver ficheiros.
+        
+    Example:
+        >>> df, carregador = carregar_dados()
+        >>> len(df)
+        5760
+    """
+    carregador = CarregadorDados(data_dir)
+    df = carregador.carregar_todos()
+
+    if filtrar_real and len(df) > 0 and 'Estado' in df.columns:
+        df = carregador.filtrar_estado(df, estado='Real')
+
+    return df, carregador
 
